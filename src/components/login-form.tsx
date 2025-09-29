@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -15,8 +16,9 @@ interface LoginCredentials {
 }
 
 interface LoginResponse {
-  token?: string
-  message?: string
+  token: string
+  username: string
+  rol?: string
 }
 
 export function LoginForm() {
@@ -34,7 +36,7 @@ export function LoginForm() {
         ...prev,
         [field]: e.target.value,
       }))
-      if (error) setError(null)
+      if (error) setError(null) // limpiar error al escribir
     }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -64,19 +66,24 @@ export function LoginForm() {
 
       if (response.ok && data.token) {
         setSuccess(true)
+
+        // Guardar en localStorage
         localStorage.setItem("authToken", data.token)
+        localStorage.setItem("username", data.username)
+        if (data.rol) localStorage.setItem("rol", data.rol)
 
         
 
+        // Redirección
         setTimeout(() => {
           window.location.href = "/dashboard"
         }, 2000)
       } else {
-        setError(data.message || "Credenciales incorrectas")
+        setError("Credenciales incorrectas")
       }
     } catch (err) {
       console.error("Error de conexión:", err)
-      setError("Error de conexión con el servidor. Verifica que la API esté funcionando.")
+      setError("Error de conexión con el servidor.")
     } finally {
       setIsLoading(false)
     }
@@ -94,12 +101,7 @@ export function LoginForm() {
                 stroke="currentColor"
                 viewBox="0 0 24 24"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 13l4 4L19 7"
-                />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
               </svg>
             </div>
             <h3 className="text-lg font-semibold text-foreground mb-2">¡Login Exitoso!</h3>
@@ -164,7 +166,7 @@ export function LoginForm() {
             {isLoading ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Iniciando sesión.....
+                Iniciando sesión...
               </>
             ) : (
               "Iniciar Sesión"

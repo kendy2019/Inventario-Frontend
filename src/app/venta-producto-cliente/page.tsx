@@ -12,6 +12,7 @@ import { isAuthenticated, logout } from "@/lib/auth"
 import { Receipt, ArrowLeft, LogOut, Save, Search, Eye } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
+import { DashboardLayout } from "@/components/layout/dashboard-layout"
 
 interface VentaProductoCliente {
   id: number
@@ -174,6 +175,7 @@ export default function VentaProductoClientePage() {
   }
 
   return (
+    <DashboardLayout>
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card">
@@ -380,5 +382,6 @@ export default function VentaProductoClientePage() {
         )}
       </main>
     </div>
+    </DashboardLayout>
   )
 }

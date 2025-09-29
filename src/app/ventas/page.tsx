@@ -9,6 +9,7 @@ import { isAuthenticated, logout } from "@/lib/auth"
 import { ShoppingCart, ArrowLeft, LogOut, Plus, Minus, Trash2, Search } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
+import { DashboardLayout } from "@/components/layout/dashboard-layout"
 
 interface Producto {
   id: number
@@ -210,6 +211,7 @@ export default function VentasPage() {
   }
 
   return (
+    <DashboardLayout>
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card">
@@ -398,5 +400,6 @@ export default function VentasPage() {
         </div>
       </main>
     </div>
+    </DashboardLayout>
   )
 }

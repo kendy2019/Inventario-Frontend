@@ -12,11 +12,24 @@ export interface AuthState {
   token: string | null
   isAuthenticated: boolean
 }
+export const getUsername = (): string | null => {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("username")
+  }
+  return null
+}
 
 // Función para obtener el token del localStorage
 export const getAuthToken = (): string | null => {
   if (typeof window !== "undefined") {
     return localStorage.getItem("authToken")
+  }
+  return null
+}
+// Función para obtener el rol del usuario
+export const getUserRole = (): string | null => {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("rol")
   }
   return null
 }

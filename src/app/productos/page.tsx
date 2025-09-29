@@ -9,6 +9,7 @@ import { isAuthenticated, logout } from "@/lib/auth"
 import { Package, Search, Edit, Trash2, Plus, ArrowLeft, LogOut } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
+import { DashboardLayout } from "@/components/layout/dashboard-layout"
 
 interface Producto {
   id: number
@@ -114,6 +115,7 @@ export default function ProductosPage() {
   }
 
   return (
+    <DashboardLayout>
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card">
@@ -312,5 +314,6 @@ export default function ProductosPage() {
         </div>
       </main>
     </div>
+    </DashboardLayout>
   )
 }
