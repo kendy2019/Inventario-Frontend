@@ -7,20 +7,23 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import {
   ChevronDown,
   ChevronRight,
   Package,
   FileText,
   ShoppingCart,
-  Receipt,
   Home,
   LogOut,
   User,
-  TrendingUp,
   Archive,
+  FileBarChart,
+  Users,
+  Settings,
+  BarChart3,
 } from "lucide-react"
-import { logout, getUsername, getUserRole } from "@/lib/auth"
+import { logout, getUserData, canAccessProducts, canAccessSales, canAccessClients, canAccessSettings } from "@/lib/auth"
 
 interface MenuItem {
   title: string
@@ -61,19 +64,41 @@ const menuItems: MenuItem[] = [
     icon: <ShoppingCart className="w-4 h-4" />,
     children: [
       {
-        title: "Sistema de Ventas",
+        title: "Cotización y Venta",
         icon: <ShoppingCart className="w-4 h-4" />,
         href: "/ventas",
       },
       {
-        title: "Venta Producto Cliente",
-        icon: <Receipt className="w-4 h-4" />,
-        href: "/venta-producto-cliente",
+        title: "Reportes de Ventas",
+        icon: <BarChart3 className="w-4 h-4" />,
+        href: "/reportes-ventas",
+      },
+    ],
+  },
+  {
+    title: "CLIENTES",
+    icon: <Users className="w-4 h-4" />,
+    children: [
+      {
+        title: "Gestión de Clientes",
+        icon: <Users className="w-4 h-4" />,
+        href: "/clientes",
       },
       {
-        title: "Reportes de Ventas",
-        icon: <TrendingUp className="w-4 h-4" />,
-        href: "/reportes-ventas",
+        title: "Historial de Compras",
+        icon: <FileBarChart className="w-4 h-4" />,
+        href: "/historial-clientes",
+      },
+    ],
+  },
+  {
+    title: "CONFIGURACIÓN",
+    icon: <Settings className="w-4 h-4" />,
+    children: [
+      {
+        title: "Usuarios",
+        icon: <User className="w-4 h-4" />,
+        href: "/usuarios",
       },
     ],
   },
@@ -86,9 +111,7 @@ interface SidebarProps {
 export function Sidebar({ className }: SidebarProps) {
   const [expandedItems, setExpandedItems] = useState<string[]>(["PRODUCTOS", "VENTAS"])
   const pathname = usePathname()
-  const username = getUsername()
-  const userRole = getUserRole()
-
+  const { username, rol } = getUserData()
 
   const toggleExpanded = (title: string) => {
     setExpandedItems((prev) => (prev.includes(title) ? prev.filter((item) => item !== title) : [...prev, title]))
@@ -96,6 +119,18 @@ export function Sidebar({ className }: SidebarProps) {
 
   const handleLogout = () => {
     logout()
+  }
+
+  const getRoleBadgeVariant = (role: string | null) => {
+    if (!role) return "secondary"
+    switch (role.toUpperCase()) {
+      case "ADMIN":
+        return "default"
+      case "EMPLOYEE":
+        return "secondary"
+      default:
+        return "outline"
+    }
   }
 
   const renderMenuItem = (item: MenuItem, level = 0) => {
@@ -108,7 +143,7 @@ export function Sidebar({ className }: SidebarProps) {
         <div key={item.title} className="space-y-1">
           <Button
             variant="ghost"
-            className={`w-full justify-start text-left font-medium ${level === 0 ? "text-sm" : "text-xs"}`}
+            className={`w-full justify-start text-left font-semibold ${level === 0 ? "text-sm" : "text-xs"} hover:bg-muted/80`}
             onClick={() => toggleExpanded(item.title)}
           >
             {item.icon}
@@ -116,8 +151,10 @@ export function Sidebar({ className }: SidebarProps) {
             {isExpanded ? <ChevronDown className="w-4 h-4" /> : <ChevronRight className="w-4 h-4" />}
           </Button>
 
-          {isExpanded && item.children && (
-            <div className="ml-4 space-y-1">{item.children.map((child) => renderMenuItem(child, level + 1))}</div>
+          {isExpanded && (
+            <div className="ml-4 space-y-1 border-l-2 border-muted pl-2">
+              {item.children.map((child) => renderMenuItem(child, level + 1))}
+            </div>
           )}
         </div>
       )
@@ -127,7 +164,7 @@ export function Sidebar({ className }: SidebarProps) {
       <Link key={item.title} href={item.href || "#"}>
         <Button
           variant={isActive ? "secondary" : "ghost"}
-          className={`w-full justify-start text-left ${level === 0 ? "text-sm" : "text-xs"} ${level > 0 ? "ml-2" : ""}`}
+          className={`w-full justify-start text-left ${level === 0 ? "text-sm font-medium" : "text-xs"} ${level > 0 ? "ml-2" : ""} ${isActive ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/80"}`}
         >
           {item.icon}
           <span className="ml-2">{item.title}</span>
@@ -136,25 +173,42 @@ export function Sidebar({ className }: SidebarProps) {
     )
   }
 
+  const getFilteredMenuItems = (): MenuItem[] => {
+    return menuItems.filter((item) => {
+      // Dashboard siempre visible
+      if (item.title === "Dashboard") return true
+
+      // Filtrar según permisos
+      if (item.title === "PRODUCTOS") return canAccessProducts()
+      if (item.title === "VENTAS") return canAccessSales()
+      if (item.title === "CLIENTES") return canAccessClients()
+      if (item.title === "CONFIGURACIÓN") return canAccessSettings()
+
+      return true
+    })
+  }
+
   return (
-    <div className={`flex flex-col h-full bg-card border-r ${className}`}>
+    <div className={`flex flex-col h-full bg-card border-r shadow-sm ${className}`}>
       {/* Header del Sidebar */}
-      <div className="p-4 border-b">
-        <h2 className="text-lg font-semibold text-foreground">Sistema de Gestión</h2>
+      <div className="p-4 border-b bg-gradient-to-r from-primary/5 to-primary/10">
+        <h2 className="text-lg font-bold text-foreground">Sistema ERP</h2>
+        <p className="text-xs text-muted-foreground">Gestión Empresarial</p>
       </div>
 
-      {/* Información del Usuario */}
       <div className="p-4 border-b">
-        <Card>
-          <CardContent className="p-3">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
-                <User className="w-4 h-4 text-primary-foreground" />
+        <Card className="border-2 border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10">
+          <CardContent className="p-4">
+            <div className="flex items-start gap-3">
+              <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center flex-shrink-0 shadow-md">
+                <User className="w-6 h-6 text-primary-foreground" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-foreground truncate">{username || "Usuario"}</p>
-                <p className="text-xs text-muted-foreground truncate">{userRole || "Rol Desconocido"}</p>
-                <p className="text-xs text-muted-foreground">Conectado</p>
+                <p className="text-sm font-bold text-foreground truncate">{username || "Usuario"}</p>
+                <Badge variant={getRoleBadgeVariant(rol)} className="mt-1 text-xs font-medium">
+                  {rol || "Usuario"}
+                </Badge>
+                <p className="text-xs text-muted-foreground mt-1">En línea</p>
               </div>
             </div>
           </CardContent>
@@ -162,13 +216,19 @@ export function Sidebar({ className }: SidebarProps) {
       </div>
 
       {/* Navegación */}
-      <nav className="flex-1 p-4 space-y-2">{menuItems.map((item) => renderMenuItem(item))}</nav>
+      <nav className="flex-1 p-4 space-y-2 overflow-y-auto">
+        {getFilteredMenuItems().map((item) => renderMenuItem(item))}
+      </nav>
 
       {/* Footer del Sidebar */}
-      <div className="p-4 border-t">
-        <Button onClick={handleLogout} variant="outline" className="w-full justify-start text-left bg-transparent">
+      <div className="p-4 border-t bg-muted/30">
+        <Button
+          onClick={handleLogout}
+          variant="outline"
+          className="w-full justify-start text-left bg-transparent hover:bg-destructive/10 hover:text-destructive hover:border-destructive"
+        >
           <LogOut className="w-4 h-4" />
-          <span className="ml-2">Cerrar Sesión</span>
+          <span className="ml-2 font-medium">Cerrar Sesión</span>
         </Button>
       </div>
     </div>

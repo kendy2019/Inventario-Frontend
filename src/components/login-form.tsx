@@ -6,9 +6,9 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import { Loader2, Lock, User } from "lucide-react"
+import { Loader2, Lock, User, ShieldCheck } from "lucide-react"
 
 interface LoginCredentials {
   username: string
@@ -16,9 +16,11 @@ interface LoginCredentials {
 }
 
 interface LoginResponse {
+  success?: boolean
   token: string
   username: string
-  rol?: string
+  rol: string
+  message?: string
 }
 
 export function LoginForm() {
@@ -30,14 +32,13 @@ export function LoginForm() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
 
-  const handleInputChange =
-    (field: keyof LoginCredentials) => (e: React.ChangeEvent<HTMLInputElement>) => {
-      setCredentials((prev) => ({
-        ...prev,
-        [field]: e.target.value,
-      }))
-      if (error) setError(null) // limpiar error al escribir
-    }
+  const handleInputChange = (field: keyof LoginCredentials) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    setCredentials((prev) => ({
+      ...prev,
+      [field]: e.target.value,
+    }))
+    if (error) setError(null)
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -51,7 +52,43 @@ export function LoginForm() {
     setError(null)
 
     try {
-      const response = await fetch("http://localhost:8080/api/auth/login", {
+      // ============================================================================
+      // CREDENCIALES DE PRUEBA - SOLO PARA DESARROLLO
+      // Usuario: admin | Contraseña: 123 (ROL: ADMIN)
+      // Usuario: empleado | Contraseña: 123 (ROL: EMPLOYEE)
+      // TODO: ELIMINAR ESTE BLOQUE CUANDO SE CONECTE A LA BASE DE DATOS REAL
+      // ============================================================================
+      if (
+        (credentials.username === "admin" && credentials.password === "123") ||
+        (credentials.username === "empleado" && credentials.password === "123")
+      ) {
+        // Simular respuesta exitosa con datos de prueba
+        const mockData: LoginResponse = {
+          success: true,
+          token: "mock-token-for-testing-" + Date.now(),
+          username: credentials.username,
+          rol: credentials.username === "admin" ? "ADMIN" : "EMPLOYEE",
+        }
+
+        setSuccess(true)
+        localStorage.setItem("authToken", mockData.token)
+        localStorage.setItem("username", mockData.username)
+        localStorage.setItem("userRole", mockData.rol)
+
+        console.log("Login exitoso (modo prueba):", mockData)
+
+        setTimeout(() => {
+          window.location.href = "/dashboard"
+        }, 1500)
+
+        setIsLoading(false)
+        return
+      }
+      // ============================================================================
+      // FIN DE CREDENCIALES DE PRUEBA
+      // ============================================================================
+
+      const response = await fetch("http://localhost:8080/api/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -66,24 +103,21 @@ export function LoginForm() {
 
       if (response.ok && data.token) {
         setSuccess(true)
-
-        // Guardar en localStorage
         localStorage.setItem("authToken", data.token)
         localStorage.setItem("username", data.username)
-        if (data.rol) localStorage.setItem("rol", data.rol)
+        localStorage.setItem("userRole", data.rol)
 
-        
+        console.log("Login exitoso:", data)
 
-        // Redirección
         setTimeout(() => {
           window.location.href = "/dashboard"
-        }, 2000)
+        }, 1500)
       } else {
-        setError("Credenciales incorrectas")
+        setError(data.message || "Credenciales incorrectas")
       }
     } catch (err) {
       console.error("Error de conexión:", err)
-      setError("Error de conexión con el servidor.")
+      setError("Error de conexión con el servidor. Verifica que la API esté funcionando.")
     } finally {
       setIsLoading(false)
     }
@@ -91,21 +125,14 @@ export function LoginForm() {
 
   if (success) {
     return (
-      <Card>
+      <Card className="border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
         <CardContent className="pt-6">
           <div className="text-center">
-            <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-              <svg
-                className="w-6 h-6 text-green-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-              </svg>
+            <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center mx-auto mb-4 animate-pulse">
+              <ShieldCheck className="w-8 h-8 text-white" />
             </div>
-            <h3 className="text-lg font-semibold text-foreground mb-2">¡Login Exitoso!</h3>
-            <p className="text-muted-foreground">Redirigiendo...</p>
+            <h3 className="text-xl font-bold text-green-800 mb-2">¡Acceso Concedido!</h3>
+            <p className="text-green-600">Redirigiendo al sistema...</p>
           </div>
         </CardContent>
       </Card>
@@ -113,25 +140,32 @@ export function LoginForm() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-center flex items-center justify-center gap-2">
-          <Lock className="w-5 h-5" />
-          Acceso al Sistema
-        </CardTitle>
+    <Card className="border-2 shadow-xl">
+      <CardHeader className="space-y-1 pb-4">
+        <div className="flex justify-center mb-4">
+          <div className="w-16 h-16 bg-primary rounded-full flex items-center justify-center">
+            <Lock className="w-8 h-8 text-primary-foreground" />
+          </div>
+        </div>
+        <CardTitle className="text-2xl text-center font-bold">Sistema ERP</CardTitle>
+        <CardDescription className="text-center">Ingresa tus credenciales para acceder al sistema</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
+            <Alert variant="destructive" className="animate-in fade-in-50">
+              <AlertDescription className="flex items-center gap-2">
+                <span className="font-medium">Error:</span> {error}
+              </AlertDescription>
             </Alert>
           )}
 
           <div className="space-y-2">
-            <Label htmlFor="username">Usuario</Label>
+            <Label htmlFor="username" className="text-sm font-medium">
+              Usuario
+            </Label>
             <div className="relative">
-              <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <User className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
               <Input
                 id="username"
                 type="text"
@@ -139,16 +173,18 @@ export function LoginForm() {
                 value={credentials.username}
                 onChange={handleInputChange("username")}
                 disabled={isLoading}
-                className="pl-10"
+                className="pl-10 h-11"
                 required
               />
             </div>
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Contraseña</Label>
+            <Label htmlFor="password" className="text-sm font-medium">
+              Contraseña
+            </Label>
             <div className="relative">
-              <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+              <Lock className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
               <Input
                 id="password"
                 type="password"
@@ -156,27 +192,31 @@ export function LoginForm() {
                 value={credentials.password}
                 onChange={handleInputChange("password")}
                 disabled={isLoading}
-                className="pl-10"
+                className="pl-10 h-11"
                 required
               />
             </div>
           </div>
 
-          <Button type="submit" className="w-full" disabled={isLoading}>
+          <Button type="submit" className="w-full h-11 text-base font-medium" disabled={isLoading}>
             {isLoading ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Iniciando sesión...
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                Verificando credenciales...
               </>
             ) : (
-              "Iniciar Sesión"
+              <>
+                <ShieldCheck className="mr-2 h-5 w-5" />
+                Iniciar Sesión
+              </>
             )}
           </Button>
         </form>
 
         <div className="mt-6 text-center">
           <p className="text-sm text-muted-foreground">
-            ¿Problemas para acceder? Contacta al administrador
+            ¿Problemas para acceder?{" "}
+            <span className="text-primary font-medium cursor-pointer hover:underline">Contacta al administrador</span>
           </p>
         </div>
       </CardContent>

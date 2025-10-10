@@ -4,19 +4,13 @@ export interface User {
   id: string
   username: string
   email?: string
-  roles?: string[]
+  rol?: string
 }
 
 export interface AuthState {
   user: User | null
   token: string | null
   isAuthenticated: boolean
-}
-export const getUsername = (): string | null => {
-  if (typeof window !== "undefined") {
-    return localStorage.getItem("username")
-  }
-  return null
 }
 
 // Función para obtener el token del localStorage
@@ -26,10 +20,17 @@ export const getAuthToken = (): string | null => {
   }
   return null
 }
-// Función para obtener el rol del usuario
+
+export const getUsername = (): string | null => {
+  if (typeof window !== "undefined") {
+    return localStorage.getItem("username")
+  }
+  return null
+}
+
 export const getUserRole = (): string | null => {
   if (typeof window !== "undefined") {
-    return localStorage.getItem("rol")
+    return localStorage.getItem("userRole")
   }
   return null
 }
@@ -45,6 +46,15 @@ export const setAuthToken = (token: string): void => {
 export const removeAuthToken = (): void => {
   if (typeof window !== "undefined") {
     localStorage.removeItem("authToken")
+    localStorage.removeItem("username")
+    localStorage.removeItem("userRole")
+  }
+}
+
+export const getUserData = (): { username: string | null; rol: string | null } => {
+  return {
+    username: getUsername(),
+    rol: getUserRole(),
   }
 }
 
@@ -74,4 +84,43 @@ export const authenticatedFetch = async (url: string, options: RequestInit = {})
 export const logout = (): void => {
   removeAuthToken()
   window.location.href = "/"
+}
+
+export const hasRole = (requiredRole: string | string[]): boolean => {
+  const userRole = getUserRole()
+  if (!userRole) return false
+
+  if (Array.isArray(requiredRole)) {
+    return requiredRole.includes(userRole.toUpperCase())
+  }
+
+  return userRole.toUpperCase() === requiredRole.toUpperCase()
+}
+
+export const isAdmin = (): boolean => {
+  return hasRole("ADMIN")
+}
+
+export const isEmployee = (): boolean => {
+  return hasRole("EMPLOYEE")
+}
+
+export const canAccessProducts = (): boolean => {
+  return isAdmin()
+}
+
+export const canAccessSales = (): boolean => {
+  return hasRole(["ADMIN", "EMPLOYEE"])
+}
+
+export const canAccessClients = (): boolean => {
+  return hasRole(["ADMIN", "EMPLOYEE"])
+}
+
+export const canAccessSettings = (): boolean => {
+  return isAdmin()
+}
+
+export const canAccessReports = (): boolean => {
+  return isAdmin()
 }

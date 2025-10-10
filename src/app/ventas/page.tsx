@@ -1,27 +1,38 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { isAuthenticated, logout } from "@/lib/auth"
-import { ShoppingCart, ArrowLeft, LogOut, Plus, Minus, Trash2, Search } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import { isAuthenticated, getUserData } from "@/lib/auth"
+import { ShoppingCart, Plus, Minus, Trash2, Search, Save, User, Phone, Package } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import Link from "next/link"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Badge } from "@/components/ui/badge"
 
 interface Producto {
   id: number
   nombre: string
   precio: number
   stock: number
+  categoria?: string
 }
 
 interface ItemVenta {
   producto: Producto
   cantidad: number
   subtotal: number
+}
+
+interface Cotizacion {
+  clienteNombre: string
+  clienteTelefono: string
+  marcaCelular: string
+  detalleCelular: string
+  observaciones: string
 }
 
 export default function VentasPage() {
@@ -34,6 +45,17 @@ export default function VentasPage() {
   const [searchTerm, setSearchTerm] = useState("")
   const [message, setMessage] = useState("")
   const [processingVenta, setProcessingVenta] = useState(false)
+  const [activeTab, setActiveTab] = useState("cotizacion")
+
+  const [cotizacion, setCotizacion] = useState<Cotizacion>({
+    clienteNombre: "",
+    clienteTelefono: "",
+    marcaCelular: "",
+    detalleCelular: "",
+    observaciones: "",
+  })
+
+  const { username } = getUserData()
 
   useEffect(() => {
     const checkAuth = () => {
@@ -52,17 +74,21 @@ export default function VentasPage() {
 
   const loadProductos = async () => {
     const mockProductos: Producto[] = [
-      { id: 1, nombre: "iPhone 14", precio: 999, stock: 10 },
-      { id: 2, nombre: "Samsung Galaxy S23", precio: 899, stock: 15 },
-      { id: 3, nombre: "MacBook Pro", precio: 1999, stock: 5 },
-      { id: 4, nombre: "iPad Air", precio: 599, stock: 8 },
-      { id: 5, nombre: "AirPods Pro", precio: 249, stock: 20 },
+      { id: 1, nombre: "iPhone 14 Pro", precio: 999, stock: 10, categoria: "Smartphones" },
+      { id: 2, nombre: "Samsung Galaxy S23", precio: 899, stock: 15, categoria: "Smartphones" },
+      { id: 3, nombre: "MacBook Pro M2", precio: 1999, stock: 5, categoria: "Laptops" },
+      { id: 4, nombre: "iPad Air", precio: 599, stock: 8, categoria: "Tablets" },
+      { id: 5, nombre: "AirPods Pro", precio: 249, stock: 20, categoria: "Accesorios" },
+      { id: 6, nombre: "Apple Watch Series 8", precio: 399, stock: 12, categoria: "Wearables" },
     ]
     setProductos(mockProductos)
   }
 
-  const handleLogout = () => {
-    logout()
+  const handleCotizacionChange = (field: keyof Cotizacion, value: string) => {
+    setCotizacion((prev) => ({
+      ...prev,
+      [field]: value,
+    }))
   }
 
   const agregarAlCarrito = () => {
@@ -145,36 +171,52 @@ export default function VentasPage() {
       return
     }
 
+    if (!cotizacion.clienteNombre.trim()) {
+      setMessage("Por favor, completa la información del cliente")
+      setActiveTab("cotizacion")
+      return
+    }
+
     setProcessingVenta(true)
     setMessage("")
 
     try {
-      // const ventaData = {
-      //   items: carrito.map(item => ({
-      //     productoId: item.producto.id,
-      //     cantidad: item.cantidad,
-      //     precio: item.producto.precio
-      //   })),
-      //   total: calcularTotal(),
-      //   fecha: new Date().toISOString()
-      // }
+      const ventaData = {
+        cotizacion,
+        items: carrito.map((item) => ({
+          productoId: item.producto.id,
+          cantidad: item.cantidad,
+          precio: item.producto.precio,
+        })),
+        total: calcularTotal(),
+        fecha: new Date().toISOString(),
+        registradoPor: username,
+      }
 
+      console.log("[v0] Datos de venta:", ventaData)
+
+      // Aquí iría la llamada a tu API
       // const response = await fetch('http://localhost:8080/api/ventas', {
       //   method: 'POST',
       //   headers: {
       //     'Content-Type': 'application/json',
-      //     'Authorization': `Bearer ${localStorage.getItem('token')}`
+      //     'Authorization': `Bearer ${localStorage.getItem('authToken')}`
       //   },
       //   body: JSON.stringify(ventaData)
       // })
 
-      // Simulación de procesamiento
       await new Promise((resolve) => setTimeout(resolve, 2000))
 
       setMessage("Venta procesada exitosamente")
       setCarrito([])
+      setCotizacion({
+        clienteNombre: "",
+        clienteTelefono: "",
+        marcaCelular: "",
+        detalleCelular: "",
+        observaciones: "",
+      })
 
-      // Actualizar stock local (en producción esto vendría de la API)
       setProductos(
         productos.map((producto) => {
           const itemVendido = carrito.find((item) => item.producto.id === producto.id)
@@ -212,40 +254,127 @@ export default function VentasPage() {
 
   return (
     <DashboardLayout>
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-4">
-              <Link href="/dashboard">
-                <Button variant="ghost" size="sm">
-                  <ArrowLeft className="w-4 h-4 mr-2" />
-                  Volver
-                </Button>
-              </Link>
-              <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-                <ShoppingCart className="w-6 h-6" />
-                Sistema de Ventas
-              </h1>
-            </div>
-
-            <Button onClick={handleLogout} variant="outline" size="sm">
-              <LogOut className="w-4 h-4 mr-2" />
-              Cerrar Sesión
-            </Button>
-          </div>
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground flex items-center gap-3">
+            <ShoppingCart className="w-8 h-8" />
+            Cotización y Venta
+          </h1>
+          <p className="text-muted-foreground mt-2">Gestiona cotizaciones y procesa ventas de productos</p>
         </div>
-      </header>
 
-      {/* Contenido principal */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Panel de selección de productos */}
-          <div className="space-y-6">
+        {message && (
+          <Alert
+            className={`animate-in fade-in-50 ${message.includes("Error") || message.includes("insuficiente") ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"}`}
+          >
+            <AlertDescription
+              className={
+                message.includes("Error") || message.includes("insuficiente") ? "text-red-800" : "text-green-800"
+              }
+            >
+              {message}
+            </AlertDescription>
+          </Alert>
+        )}
+
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-3">
+            <TabsTrigger value="cotizacion">
+              <User className="w-4 h-4 mr-2" />
+              Cotización
+            </TabsTrigger>
+            <TabsTrigger value="productos">
+              <Package className="w-4 h-4 mr-2" />
+              Productos
+            </TabsTrigger>
+            <TabsTrigger value="carrito">
+              <ShoppingCart className="w-4 h-4 mr-2" />
+              Carrito ({carrito.length})
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="cotizacion" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Información del Cliente</CardTitle>
+                <CardDescription>Registra los datos del cliente y detalles de la cotización</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="clienteNombre">Nombre del Cliente *</Label>
+                    <div className="relative">
+                      <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="clienteNombre"
+                        value={cotizacion.clienteNombre}
+                        onChange={(e) => handleCotizacionChange("clienteNombre", e.target.value)}
+                        placeholder="Nombre completo"
+                        className="pl-10"
+                        required
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label htmlFor="clienteTelefono">Teléfono del Cliente</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="clienteTelefono"
+                        value={cotizacion.clienteTelefono}
+                        onChange={(e) => handleCotizacionChange("clienteTelefono", e.target.value)}
+                        placeholder="+51 999 999 999"
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="marcaCelular">Marca del Celular</Label>
+                    <Input
+                      id="marcaCelular"
+                      value={cotizacion.marcaCelular}
+                      onChange={(e) => handleCotizacionChange("marcaCelular", e.target.value)}
+                      placeholder="ej: iPhone, Samsung, Xiaomi"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="detalleCelular">Modelo del Celular</Label>
+                    <Input
+                      id="detalleCelular"
+                      value={cotizacion.detalleCelular}
+                      onChange={(e) => handleCotizacionChange("detalleCelular", e.target.value)}
+                      placeholder="ej: iPhone 14 Pro 128GB"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="observaciones">Observaciones</Label>
+                  <Textarea
+                    id="observaciones"
+                    value={cotizacion.observaciones}
+                    onChange={(e) => handleCotizacionChange("observaciones", e.target.value)}
+                    placeholder="Notas adicionales sobre la cotización o venta"
+                    rows={3}
+                  />
+                </div>
+
+                <Button onClick={() => setActiveTab("productos")} className="w-full">
+                  Continuar a Productos
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Tab de Productos */}
+          <TabsContent value="productos" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Agregar Productos</CardTitle>
+                <CardDescription>Selecciona productos para agregar al carrito</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -277,11 +406,10 @@ export default function VentasPage() {
               </CardContent>
             </Card>
 
-            {/* Lista de productos disponibles */}
             <Card>
               <CardHeader>
                 <CardTitle>Productos Disponibles</CardTitle>
-                <div className="relative">
+                <div className="relative mt-2">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                   <Input
                     placeholder="Buscar productos..."
@@ -292,114 +420,128 @@ export default function VentasPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-2 max-h-96 overflow-y-auto">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-96 overflow-y-auto">
                   {filteredProductos.map((producto) => (
-                    <div
+                    <Card
                       key={producto.id}
-                      className="flex justify-between items-center p-3 border rounded-lg hover:bg-muted/50 cursor-pointer"
+                      className="cursor-pointer hover:border-primary transition-colors"
                       onClick={() => setProductoId(producto.id.toString())}
                     >
-                      <div>
-                        <p className="font-medium">
-                          ID: {producto.id} - {producto.nombre}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          ${producto.precio} | Stock: {producto.stock}
-                        </p>
-                      </div>
-                    </div>
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <p className="font-bold text-lg">{producto.nombre}</p>
+                            <Badge variant="outline" className="mt-1">
+                              {producto.categoria}
+                            </Badge>
+                          </div>
+                          <Badge variant={producto.stock > 10 ? "default" : "destructive"}>ID: {producto.id}</Badge>
+                        </div>
+                        <div className="flex justify-between items-center mt-3">
+                          <p className="text-2xl font-bold text-primary">${producto.precio}</p>
+                          <p className="text-sm text-muted-foreground">Stock: {producto.stock}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
                   ))}
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </TabsContent>
 
-          {/* Carrito de compras */}
-          <div className="space-y-6">
+          {/* Tab de Carrito */}
+          <TabsContent value="carrito" className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle>Carrito de Compras</CardTitle>
+                <CardDescription>Revisa y confirma los productos seleccionados</CardDescription>
               </CardHeader>
               <CardContent>
                 {carrito.length === 0 ? (
-                  <p className="text-muted-foreground text-center py-8">El carrito está vacío</p>
+                  <div className="text-center py-12">
+                    <ShoppingCart className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-muted-foreground text-lg">El carrito está vacío</p>
+                    <Button variant="outline" className="mt-4 bg-transparent" onClick={() => setActiveTab("productos")}>
+                      Agregar Productos
+                    </Button>
+                  </div>
                 ) : (
                   <div className="space-y-4">
                     {carrito.map((item) => (
-                      <div key={item.producto.id} className="flex justify-between items-center p-4 border rounded-lg">
-                        <div className="flex-1">
-                          <h4 className="font-medium">{item.producto.nombre}</h4>
-                          <p className="text-sm text-muted-foreground">${item.producto.precio} c/u</p>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => actualizarCantidad(item.producto.id, item.cantidad - 1)}
-                          >
-                            <Minus className="w-4 h-4" />
-                          </Button>
-                          <span className="w-8 text-center">{item.cantidad}</span>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => actualizarCantidad(item.producto.id, item.cantidad + 1)}
-                          >
-                            <Plus className="w-4 h-4" />
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => eliminarDelCarrito(item.producto.id)}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                        <div className="text-right ml-4">
-                          <p className="font-medium">${item.subtotal}</p>
-                        </div>
-                      </div>
+                      <Card key={item.producto.id} className="border-2">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-center">
+                            <div className="flex-1">
+                              <h4 className="font-bold text-lg">{item.producto.nombre}</h4>
+                              <p className="text-sm text-muted-foreground">${item.producto.precio} c/u</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => actualizarCantidad(item.producto.id, item.cantidad - 1)}
+                              >
+                                <Minus className="w-4 h-4" />
+                              </Button>
+                              <span className="w-12 text-center font-bold text-lg">{item.cantidad}</span>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => actualizarCantidad(item.producto.id, item.cantidad + 1)}
+                              >
+                                <Plus className="w-4 h-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => eliminarDelCarrito(item.producto.id)}
+                                className="text-destructive hover:bg-destructive/10"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                            <div className="text-right ml-6">
+                              <p className="font-bold text-xl text-primary">${item.subtotal}</p>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
                     ))}
 
-                    <div className="border-t pt-4">
-                      <div className="flex justify-between items-center text-lg font-bold">
-                        <span>Total:</span>
-                        <span>${calcularTotal()}</span>
-                      </div>
-                    </div>
+                    <Card className="border-2 border-primary bg-primary/5">
+                      <CardContent className="p-6">
+                        <div className="flex justify-between items-center">
+                          <span className="text-2xl font-bold">Total:</span>
+                          <span className="text-3xl font-bold text-primary">${calcularTotal()}</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    <Button
+                      onClick={procesarVenta}
+                      disabled={carrito.length === 0 || processingVenta}
+                      className="w-full h-12 text-lg"
+                      size="lg"
+                    >
+                      {processingVenta ? (
+                        <>
+                          <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                          Procesando Venta...
+                        </>
+                      ) : (
+                        <>
+                          <Save className="w-5 h-5 mr-2" />
+                          Procesar Venta (${calcularTotal()})
+                        </>
+                      )}
+                    </Button>
                   </div>
                 )}
               </CardContent>
             </Card>
-
-            {message && (
-              <Alert
-                className={message.includes("Error") ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"}
-              >
-                <AlertDescription className={message.includes("Error") ? "text-red-800" : "text-green-800"}>
-                  {message}
-                </AlertDescription>
-              </Alert>
-            )}
-
-            <Button
-              onClick={procesarVenta}
-              disabled={carrito.length === 0 || processingVenta}
-              className="w-full"
-              size="lg"
-            >
-              {processingVenta ? (
-                <>
-                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                  Procesando Venta...
-                </>
-              ) : (
-                <>
-                  <ShoppingCart className="w-4 h-4 mr-2" />
-                  Procesar Venta (${calcularTotal()})
-                </>
-              )}
-            </Button>
-          </div>
-        </div>
-      </main>
-    </div>
+          </TabsContent>
+        </Tabs>
+      </div>
     </DashboardLayout>
   )
 }

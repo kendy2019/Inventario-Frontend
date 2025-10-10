@@ -12,7 +12,6 @@ import { isAuthenticated, logout } from "@/lib/auth"
 import { FileText, ArrowLeft, LogOut, Save, RotateCcw } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import Link from "next/link"
-import { DashboardLayout } from "@/components/layout/dashboard-layout"
 
 export default function GuiaIngresoPage() {
   const [isAuth, setIsAuth] = useState(false)
@@ -134,7 +133,6 @@ export default function GuiaIngresoPage() {
   }
 
   return (
-<DashboardLayout>
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-card">
@@ -334,6 +332,5 @@ export default function GuiaIngresoPage() {
         </Card>
       </main>
     </div>
-    </DashboardLayout>
   )
 }

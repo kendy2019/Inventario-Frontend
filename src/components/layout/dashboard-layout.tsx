@@ -4,7 +4,7 @@ import type React from "react"
 
 import { useEffect, useState } from "react"
 import { isAuthenticated } from "@/lib/auth"
-import { Sidebar } from "@/components/layout/sidebar"
+import { Sidebar } from "./sidebar"
 
 interface DashboardLayoutProps {
   children: React.ReactNode
