@@ -30,6 +30,7 @@ interface MenuItem {
   icon: React.ReactNode
   href?: string
   children?: MenuItem[]
+  requiredRole?: string
 }
 
 const menuItems: MenuItem[] = [
@@ -59,7 +60,7 @@ const menuItems: MenuItem[] = [
       },
     ],
   },
-  {
+{
     title: "VENTAS",
     icon: <ShoppingCart className="w-4 h-4" />,
     children: [
@@ -72,6 +73,7 @@ const menuItems: MenuItem[] = [
         title: "Reportes de Ventas",
         icon: <BarChart3 className="w-4 h-4" />,
         href: "/reportes-ventas",
+        requiredRole: "ADMIN" // <-- AÑADE ESTA LÍNEA
       },
     ],
   },
