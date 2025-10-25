@@ -213,12 +213,7 @@ export function LoginForm() {
           </Button>
         </form>
 
-        <div className="mt-6 text-center">
-          <p className="text-sm text-muted-foreground">
-            ¿Problemas para acceder?{" "}
-            <span className="text-primary font-medium cursor-pointer hover:underline">Contacta al administrador</span>
-          </p>
-        </div>
+      
       </CardContent>
     </Card>
   )
