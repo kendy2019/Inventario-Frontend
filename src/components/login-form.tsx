@@ -147,7 +147,7 @@ export function LoginForm() {
             <Lock className="w-8 h-8 text-primary-foreground" />
           </div>
         </div>
-        <CardTitle className="text-2xl text-center font-bold">Sistema ERP</CardTitle>
+        
         <CardDescription className="text-center">Ingresa tus credenciales para acceder al sistema</CardDescription>
       </CardHeader>
       <CardContent>
