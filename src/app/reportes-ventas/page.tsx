@@ -37,6 +37,18 @@ const isAuthenticated = (): boolean => {
         return false;
     }
 };
+
+const getUserData = (): { username: string | null; userRole: string | null } => {
+    try {
+        return {
+            username: localStorage.getItem("username"),
+            userRole: localStorage.getItem("userRole"),
+        };
+    } catch (e) {
+        return { username: null, userRole: null };
+    }
+};
+
 export default function ReportesVentasPage() {
     const [isAuth, setIsAuth] = useState(false);
     const [loading, setLoading] = useState(true);
@@ -44,46 +56,78 @@ export default function ReportesVentasPage() {
     const [chartData, setChartData] = useState<VentaPorDia[]>([]);
     const [recentSales, setRecentSales] = useState<VentaReciente[]>([]);
     const [error, setError] = useState<string | null>(null);
-
+    
     useEffect(() => {
+    const checkAuth = () => {
         const authenticated = isAuthenticated();
         setIsAuth(authenticated);
-        if (authenticated) {
-            fetchReportData();
-        } else {
-            setLoading(false);
-            setError("Acceso denegado. Por favor, inicia sesión.");
+        setLoading(false);
+        if (!authenticated) {
+            console.error("Usuario no autenticado.");
         }
-    }, []);
+    };
+    checkAuth();
+}, []);
+
+useEffect(() => {
+    if (isAuth) {
+        fetchReportData();
+    }
+}, [isAuth]);
+
 
     const fetchReportData = async () => {
         setLoading(true);
         setError(null);
+
         try {
             const token = localStorage.getItem("authToken");
-            const headers = { 'Authorization': `Bearer ${token}` };
+            if (!token) {
+                setIsAuth(false);
+                setError("No autenticado. Token no encontrado.");
+                setLoading(false);
+                return;
+            }
 
-            // Realizar todas las peticiones en paralelo
+            const headers = { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' };
+
+            // Ejecutar peticiones en paralelo
             const [statsRes, chartRes, recentSalesRes] = await Promise.all([
                 fetch('http://localhost:8080/api/reportes/stats', { headers }),
                 fetch('http://localhost:8080/api/reportes/ventas-por-dia', { headers }),
                 fetch('http://localhost:8080/api/ventas/recientes', { headers })
             ]);
 
-            if (!statsRes.ok || !chartRes.ok || !recentSalesRes.ok) {
-                throw new Error('Error al cargar los datos de reportes.');
+            // Log responses for debugging
+            console.log("statuses:", statsRes.status, chartRes.status, recentSalesRes.status);
+
+            // If any not ok, read body (try json then text) to get server message
+            if (!statsRes.ok || !chartRes.ok || !recentSalesRes.ok ) {
+                const readBody = async (res: Response) => {
+                    try { return await res.clone().json(); } catch { return await res.clone().text(); }
+                };
+                const statsBody = statsRes.ok ? null : await readBody(statsRes);
+                const chartBody = chartRes.ok ? null : await readBody(chartRes);
+                const recentBody = recentSalesRes.ok ? null : await readBody(recentSalesRes);
+                console.error("Report fetch failed bodies:", { statsBody, chartBody, recentBody });
+                if (recentSalesRes.status === 403) {
+                    setError("Acceso denegado a ventas recientes (403). Verifica permisos/roles.");
+                    setIsAuth(true); // token puede ser válido pero sin permiso
+                    setLoading(false);
+                    return;
+                }
+                throw new Error(`Error al cargar los datos de reportes. status: stats(${statsRes.status}), chart(${chartRes.status}), recent(${recentSalesRes.status})`);
             }
 
             const statsData = await statsRes.json();
             const chartData = await chartRes.json();
             const recentSalesData = await recentSalesRes.json();
-            
+
             setStats(statsData);
             setChartData(chartData);
             setRecentSales(recentSalesData);
-
         } catch (err) {
-            console.error(err);
+            console.error("fetchReportData error:", err);
             setError("No se pudieron cargar los datos del reporte. Verifica la conexión con la API.");
         } finally {
             setLoading(false);
