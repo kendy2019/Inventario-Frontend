@@ -229,16 +229,20 @@ export default function VentasPage() {
       if (!cliente) throw new Error("Error con cliente")
 
       const ventaData = {
-        clienteId: cliente.id,
-        items: carrito.map((i) => ({
-          productoId: i.producto.id,
-          cantidad: i.cantidad,
-          precio: aplicarDescuento(i.producto.precio),
-        })),
-        total: parseFloat(calcularTotal()),
-        fecha: new Date().toISOString(),
-        registradoPor: username,
-      }
+  cotizacion: {
+    clienteNombre: cliente.nombre,
+    clienteTelefono: cliente.telefono,
+  },
+  items: carrito.map((i) => ({
+    productoId: i.producto.id,
+    cantidad: i.cantidad,
+    precio: aplicarDescuento(i.producto.precio),
+  })),
+  total: parseFloat(calcularTotal()),
+  fecha: new Date().toISOString(),
+  registradoPor: username,
+}
+
 
       const token = localStorage.getItem("authToken")
       const res = await fetch("http://localhost:8080/api/ventas", {
