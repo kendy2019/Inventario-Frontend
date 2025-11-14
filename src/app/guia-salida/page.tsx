@@ -150,12 +150,14 @@ export default function GuiaSalidaPage() {
         setMessage(null);
 
         const payload = {
-            ...guiaData,
-            items: productosEnGuia.map(p => ({
-                productoId: p.id,
-                cantidad: p.cantidad,
-            })),
-        };
+  ...guiaData,
+  fechaSalida: new Date(guiaData.fechaSalida + "T00:00:00Z").toISOString(),
+  items: productosEnGuia.map(p => ({
+      productoId: p.id,
+      cantidad: p.cantidad,
+  })),
+};
+
 
         try {
             const token = localStorage.getItem('authToken');

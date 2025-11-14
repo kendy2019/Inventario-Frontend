@@ -8,7 +8,7 @@ export default function LoginPage() {
           <h1 className="text-4xl font-bold text-foreground mb-3 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
             Bienvenido
           </h1>
-          <p className="text-muted-foreground text-lg">Sistema de Gestión Empresarial</p>
+          <p className="text-muted-foreground text-lg">Sistema de Gestión Empresarial 4.0.1</p>
         </div>
         <LoginForm />
       </div>
