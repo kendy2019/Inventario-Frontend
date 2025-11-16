@@ -14,16 +14,15 @@ import { Plus, Search, Edit, Trash2, Phone, Mail, MapPin, Smartphone } from "luc
 // --- INTERFACES ---
 interface Cliente {
   id: number
+  dni: string
   nombre: string
   telefono: string
   email: string | null
   direccion: string | null
-  marcaCelular: string | null
-  modeloCelular: string | null
   tipoCliente: "FINAL" | "TECNICO" | "MAYORISTA"
   totalCompras: number
-  ultimaCompra: string | null
 }
+
 
 // --- HOOK DEBUNCE ---
 const useDebounce = (value: string, delay: number) => {
@@ -48,14 +47,14 @@ export default function ClientesPage() {
   const [editingClient, setEditingClient] = useState<Cliente | null>(null)
 
   const initialFormData = {
+    dni: "",
     nombre: "",
     telefono: "",
     email: "",
     direccion: "",
-    marcaCelular: "",
-    modeloCelular: "",
     tipoCliente: "FINAL" as "FINAL" | "TECNICO" | "MAYORISTA"
   }
+
   const [formData, setFormData] = useState(initialFormData)
 
   const debouncedSearchTerm = useDebounce(searchTerm, 300)
@@ -97,15 +96,16 @@ export default function ClientesPage() {
     if (cliente) {
       setEditingClient(cliente)
       setFormData({
+        dni: cliente.dni,
         nombre: cliente.nombre,
         telefono: cliente.telefono,
         email: cliente.email || "",
         direccion: cliente.direccion || "",
-        marcaCelular: cliente.marcaCelular || "",
-        modeloCelular: cliente.modeloCelular || "",
+
         tipoCliente: cliente.tipoCliente
       })
-    } else {
+    }
+    else {
       setEditingClient(null)
       setFormData(initialFormData)
     }
@@ -177,46 +177,73 @@ export default function ClientesPage() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    <TableHead>DNI</TableHead>        
                     <TableHead>Cliente</TableHead>
                     <TableHead>Celular</TableHead>
                     <TableHead>Tipo</TableHead>
-                    <TableHead>Compras</TableHead>
-                    <TableHead>Última Compra</TableHead>
+                    <TableHead>Total de Compras</TableHead>  
                     <TableHead className="text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
+
                 <TableBody>
-                  {clientes.map(cliente => (
-                    <TableRow key={cliente.id}>
-                      <TableCell className="font-medium">{cliente.nombre}</TableCell>
-                      <TableCell>
-                        <div className="space-y-1 text-sm">
-                          <div className="flex items-center gap-2">
-                            <Phone className="w-4 h-4" /> {cliente.telefono}
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Smartphone className="w-4 h-4" /> {cliente.marcaCelular} {cliente.modeloCelular}
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge>{cliente.tipoCliente}</Badge>
-                      </TableCell>
-                      <TableCell>{cliente.totalCompras}</TableCell>
-                      <TableCell>{cliente.ultimaCompra ? new Date(cliente.ultimaCompra).toLocaleDateString() : "N/A"}</TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Button variant="ghost" size="sm" onClick={() => handleOpenDialog(cliente)}>
-                            <Edit />
-                          </Button>
-                          <Button variant="ghost" size="sm" onClick={() => handleDelete(cliente.id)}>
-                            <Trash2 className="text-red-500" />
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
+  {clientes.map(cliente => (
+    <TableRow key={cliente.id}>
+
+      {/* DNI */}
+      <TableCell className="font-medium">
+        {cliente.dni}
+      </TableCell>
+
+      {/* Nombre */}
+      <TableCell className="font-medium">
+        {cliente.nombre}
+      </TableCell>
+
+      {/* Teléfono + Marca/Modelo */}
+      <TableCell>
+        <div className="space-y-1 text-sm">
+          <div className="flex items-center gap-2">
+            <Phone className="w-4 h-4" /> {cliente.telefono}
+          </div>
+        </div>
+      </TableCell>
+
+      {/* Tipo de cliente */}
+      <TableCell>
+        <Badge>{cliente.tipoCliente}</Badge>
+      </TableCell>
+
+      {/* Total de compras */}
+      <TableCell>
+        {cliente.totalCompras}
+      </TableCell>
+
+      {/* Acciones */}
+      <TableCell className="text-right">
+        <div className="flex justify-end gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleOpenDialog(cliente)}
+          >
+            <Edit />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => handleDelete(cliente.id)}
+          >
+            <Trash2 className="text-red-500" />
+          </Button>
+        </div>
+      </TableCell>
+
+    </TableRow>
+  ))}
+</TableBody>
+
               </Table>
             )}
           </CardContent>
@@ -234,6 +261,11 @@ export default function ClientesPage() {
                 <Input id="nombre" value={formData.nombre} onChange={handleInputChange} required />
               </div>
               <div>
+                <Label htmlFor="dni">DNI</Label>
+                <Input id="dni" value={formData.dni} onChange={handleInputChange} required />
+              </div>
+
+              <div>
                 <Label htmlFor="telefono">Teléfono</Label>
                 <Input id="telefono" value={formData.telefono} onChange={handleInputChange} required />
               </div>
@@ -244,14 +276,6 @@ export default function ClientesPage() {
               <div>
                 <Label htmlFor="direccion">Dirección</Label>
                 <Input id="direccion" value={formData.direccion} onChange={handleInputChange} />
-              </div>
-              <div>
-                <Label htmlFor="marcaCelular">Marca del Celular</Label>
-                <Input id="marcaCelular" value={formData.marcaCelular} onChange={handleInputChange} />
-              </div>
-              <div>
-                <Label htmlFor="modeloCelular">Modelo del Celular</Label>
-                <Input id="modeloCelular" value={formData.modeloCelular} onChange={handleInputChange} />
               </div>
               <div>
                 <Label htmlFor="tipoCliente">Tipo de Cliente</Label>

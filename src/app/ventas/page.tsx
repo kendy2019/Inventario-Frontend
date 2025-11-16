@@ -27,7 +27,9 @@ interface Cliente {
   tipoCliente: string
   marcaCelular?: string
   detalleCelular?: string
+  dni?: string
 }
+
 
 interface ItemVenta {
   producto: Producto
@@ -42,7 +44,9 @@ interface Cotizacion {
   detalleCelular: string
   observaciones: string
   tipoCliente: string
+  dni: string
 }
+
 
 // --- CONFIGURACIÓN DE DESCUENTOS ---
 const DESCUENTOS: Record<string, number> = {
@@ -77,13 +81,15 @@ export default function VentasPage() {
   const { username } = getUserData()
 
   const [cotizacion, setCotizacion] = useState<Cotizacion>({
-    clienteNombre: "",
-    clienteTelefono: "",
-    marcaCelular: "",
-    detalleCelular: "",
-    observaciones: "",
-    tipoCliente: "FINAL",
-  })
+  clienteNombre: "",
+  clienteTelefono: "",
+  marcaCelular: "",
+  detalleCelular: "",
+  observaciones: "",
+  tipoCliente: "FINAL",
+  dni: "",
+})
+
 
   const debouncedProductSearchTerm = useDebounce(productSearchTerm, 300)
   const debouncedClienteNombre = useDebounce(cotizacion.clienteNombre, 500)
@@ -130,15 +136,16 @@ export default function VentasPage() {
         )
 
         if (cliente) {
-          // Si existe, autocompletar datos
-          setCotizacion((prev) => ({
-            ...prev,
-            clienteTelefono: cliente.telefono || "",
-            marcaCelular: cliente.marcaCelular || "",
-            detalleCelular: cliente.detalleCelular || "",
-            tipoCliente: cliente.tipoCliente || "FINAL",
-          }))
-        }
+  setCotizacion((prev) => ({
+    ...prev,
+    clienteTelefono: cliente.telefono || "",
+    marcaCelular: cliente.marcaCelular || "",
+    detalleCelular: cliente.detalleCelular || "",
+    tipoCliente: cliente.tipoCliente || "FINAL",
+    dni: cliente.dni || "",
+  }))
+}
+
       } catch (error) {
         console.error(error)
       }
@@ -200,12 +207,13 @@ export default function VentasPage() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          nombre,
-          telefono: cotizacion.clienteTelefono,
-          tipoCliente: cotizacion.tipoCliente,
-          marcaCelular: cotizacion.marcaCelular,
-          detalleCelular: cotizacion.detalleCelular,
-        }),
+  nombre,
+  telefono: cotizacion.clienteTelefono,
+  tipoCliente: cotizacion.tipoCliente,
+  marcaCelular: cotizacion.marcaCelular,
+  detalleCelular: cotizacion.detalleCelular,
+  dni: cotizacion.dni,
+}),
       })
 
       if (!crearRes.ok) throw new Error("Error al registrar nuevo cliente")
@@ -264,6 +272,7 @@ export default function VentasPage() {
         detalleCelular: "",
         observaciones: "",
         tipoCliente: "FINAL",
+        dni: "",
       })
     } catch {
       setMessage("Error al procesar la venta.")
@@ -314,6 +323,14 @@ export default function VentasPage() {
                   value={cotizacion.clienteTelefono}
                   onChange={(e) => handleCotizacionChange("clienteTelefono", e.target.value)}
                 />
+                <Label>DNI</Label>
+<Input
+  value={cotizacion.dni}
+  maxLength={8}
+  placeholder="8 dígitos"
+  onChange={(e) => handleCotizacionChange("dni", e.target.value)}
+/>
+
                 <Label>Tipo de Cliente</Label>
                 <Select
                   value={cotizacion.tipoCliente}
