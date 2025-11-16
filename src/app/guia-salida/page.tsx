@@ -73,6 +73,7 @@ const initialGuiaData = {
     motivo: "",
     observaciones: "",
     fechaSalida: new Date().toISOString().split("T")[0],
+    
 };
 
 export default function GuiaSalidaPage() {

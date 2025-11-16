@@ -1,295 +1,260 @@
 "use client"
 
-import React, { useEffect, useState } from "react"
-import { FileText, ArrowLeft, LogOut, Save, RotateCcw } from "lucide-react"
+import React, { useEffect, useState, useCallback } from "react"
+import { FileText, LogOut, Save, RotateCcw, Search, Trash2 } from "lucide-react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 
-// --- Componentes de UI simulados ---
-const Card = ({ children, className }: { children: React.ReactNode, className?: string }) => (
-  <div className={`bg-white border border-gray-200 rounded-lg shadow-sm ${className}`}>{children}</div>
-)
-const CardHeader = ({ children, className }: { children: React.ReactNode, className?: string }) => (
-  <div className={`p-6 border-b ${className}`}>{children}</div>
-)
-const CardTitle = ({ children, className }: { children: React.ReactNode, className?: string }) => (
-  <h2 className={`text-xl font-semibold tracking-tight ${className}`}>{children}</h2>
-)
-const CardContent = ({ children, className }: { children: React.ReactNode, className?: string }) => (
-  <div className={`p-6 ${className}`}>{children}</div>
-)
-const Button = ({ children, onClick, variant = 'default', size = 'default', className = '', disabled = false, ...props }: { children: React.ReactNode, onClick?: () => void, variant?: string, size?: string, className?: string, disabled?: boolean, [key: string]: any }) => {
+// (UI components: mismos simulados que tenías - los copio brevemente)
+const Card = ({ children, className }: any) => <div className={`bg-white border border-gray-200 rounded-lg shadow-sm ${className}`}>{children}</div>
+const CardHeader = ({ children, className }: any) => <div className={`p-6 border-b ${className}`}>{children}</div>
+const CardTitle = ({ children, className }: any) => <h2 className={`text-xl font-semibold tracking-tight ${className}`}>{children}</h2>
+const CardContent = ({ children, className }: any) => <div className={`p-6 ${className}`}>{children}</div>
+const Button = ({ children, onClick, variant = 'default', size = 'default', className = '', disabled = false, ...props }: any) => {
   const baseClasses = "inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ring-offset-background";
   const sizeClasses = size === 'sm' ? 'h-9 px-3' : 'h-10 py-2 px-4';
-  const variantClasses = variant === 'outline'
-    ? 'border border-input bg-transparent hover:bg-gray-100'
-    : 'bg-blue-600 text-white hover:bg-blue-700';
+  const variantClasses = variant === 'outline' ? 'border border-input bg-transparent hover:bg-gray-100' : 'bg-blue-600 text-white hover:bg-blue-700';
   const disabledClasses = disabled ? 'opacity-50 cursor-not-allowed' : '';
-  return (
-    <button className={`${baseClasses} ${sizeClasses} ${variantClasses} ${disabledClasses} ${className}`} onClick={onClick} disabled={disabled} {...props}>
-      {children}
-    </button>
-  )
+  return <button className={`${baseClasses} ${sizeClasses} ${variantClasses} ${disabledClasses} ${className}`} onClick={onClick} disabled={disabled} {...props}>{children}</button>
 }
-const Input = ({ className, ...props }: { className?: string, [key: string]: any }) => (
-  <input className={`flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 ${className}`} {...props} />
-)
-const Textarea = ({ className, ...props }: { className?: string, [key: string]: any }) => (
-    <textarea className={`flex min-h-[80px] w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 ${className}`} {...props} />
-)
-const Label = ({ children, ...props }: { children: React.ReactNode, [key: string]: any }) => (
-  <label className="block text-sm font-medium text-gray-700 mb-1" {...props}>{children}</label>
-)
-const Alert = ({ children, className }: { children: React.ReactNode, className?: string }) => (
-  <div className={`relative w-full rounded-lg border p-4 ${className}`}>{children}</div>
-)
-const AlertDescription = ({ children, className }: { children: React.ReactNode, className?: string }) => (
-  <div className={`text-sm ${className}`}>{children}</div>
-)
+const Input = ({ className, ...props }: any) => <input className={`flex h-10 w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 ${className}`} {...props} />
+const Textarea = ({ className, ...props }: any) => <textarea className={`flex min-h-[80px] w-full rounded-md border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50 ${className}`} {...props} />
+const Label = ({ children, ...props }: any) => <label className="block text-sm font-medium text-gray-700 mb-1" {...props}>{children}</label>
+const Alert = ({ children, className }: any) => <div className={`relative w-full rounded-lg border p-4 ${className}`}>{children}</div>
+const AlertDescription = ({ children, className }: any) => <div className={`text-sm ${className}`}>{children}</div>
 
-// --- Funciones de autenticación simuladas ---
+// auth helpers
 const isAuthenticated = () => typeof window !== 'undefined' && !!localStorage.getItem('authToken');
 const logout = () => {
-    if (typeof window !== 'undefined') {
-        localStorage.removeItem('authToken');
-        localStorage.removeItem('username');
-        localStorage.removeItem('userRole');
-        // Se elimina la redirección que causa error en el entorno de ejecución
-        // window.location.href = "/"; 
-        window.location.reload(); // Recargar la página para reflejar el estado de logout
-    }
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('authToken');
+    localStorage.removeItem('username');
+    localStorage.removeItem('userRole');
+    window.location.reload();
+  }
 };
 
-// Estado inicial del formulario
-const initialFormData = {
-    nombre: "",
-    descripcion: "",
-    categoria: "",
-    marca: "",
-    modelo: "",
-    precio: "",
-    stock: "",
-    fechaIngreso: new Date().toISOString().split("T")[0],
-    codigoBarras: "",
-    notas: "",
-};
+interface Producto {
+  id: number;
+  nombre: string;
+  stock: number;
+  precio?: number;
+}
+
+interface ProductoEnGuia extends Producto {
+  cantidad: number;
+}
+
+const initialForm = {
+  fechaIngreso: new Date().toISOString().split("T")[0],
+  notas: ""
+}
 
 export default function GuiaIngresoPage() {
-  const [isAuth, setIsAuth] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [isAuth, setIsAuth] = useState(false)
+  const [form, setForm] = useState(initialForm)
+  const [searchTerm, setSearchTerm] = useState("")
+  const [searchResults, setSearchResults] = useState<Producto[]>([])
+  const [isSearching, setIsSearching] = useState(false)
+  const [productosEnGuia, setProductosEnGuia] = useState<ProductoEnGuia[]>([])
   const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState("")
-  const [formData, setFormData] = useState(initialFormData)
+  const [message, setMessage] = useState<{ type: 'success'|'error', text: string }|null>(null)
 
   useEffect(() => {
-    const checkAuth = () => {
-      const authenticated = isAuthenticated()
-      setIsAuth(authenticated)
-      setLoading(false)
-      
-      // La redirección se elimina para evitar el error de URL inválida.
-      // El renderizado condicional se encargará de mostrar el contenido correcto.
-      // if (!authenticated) {
-      //   window.location.href = "/"
-      // }
-    }
-    checkAuth()
+    const auth = isAuthenticated()
+    setIsAuth(auth)
+    setLoading(false)
   }, [])
 
-  const handleLogout = () => {
-    logout()
+  // búsqueda con debounce
+  const buscarProductos = useCallback(async (term: string) => {
+    if (term.length < 2) {
+      setSearchResults([])
+      return
+    }
+    setIsSearching(true)
+    try {
+      const token = localStorage.getItem('authToken')
+      const res = await fetch(`http://localhost:8080/api/productos/buscar?nombre=${encodeURIComponent(term)}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      if (!res.ok) throw new Error("Error buscando productos")
+      const data = await res.json()
+      setSearchResults(data)
+    } catch (e) {
+      console.error(e)
+      setSearchResults([])
+    } finally {
+      setIsSearching(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    const t = setTimeout(() => buscarProductos(searchTerm), 300)
+    return () => clearTimeout(t)
+  }, [searchTerm, buscarProductos])
+
+  const addProducto = (p: Producto) => {
+    if (!productosEnGuia.some(x => x.id === p.id)) {
+      setProductosEnGuia(prev => [...prev, { ...p, cantidad: 1 }])
+    }
+    setSearchTerm("")
+    setSearchResults([])
   }
 
-  const handleInputChange = (field: keyof typeof initialFormData, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }))
+  const removeProducto = (id: number) => setProductosEnGuia(prev => prev.filter(p => p.id !== id))
+
+  const cambiarCantidad = (id: number, cantidad: number) => {
+    if (cantidad < 1) cantidad = 1
+    setProductosEnGuia(prev => prev.map(p => p.id === id ? { ...p, cantidad } : p))
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (productosEnGuia.length === 0) {
+      setMessage({ type: 'error', text: 'Agrega al menos un producto antes de enviar la guía.' })
+      return
+    }
     setSaving(true)
-    setMessage("")
+    setMessage(null)
 
-    // Conversión de tipos para la API
     const payload = {
-        ...formData,
-        precio: parseFloat(formData.precio) || 0,
-        stock: parseInt(formData.stock, 10) || 0,
-    };
+      fechaIngreso: form.fechaIngreso,
+      notas: form.notas,
+      detalle: productosEnGuia.map(p => ({ productoId: p.id, cantidad: p.cantidad }))
+    }
 
     try {
-      const token = localStorage.getItem('authToken');
-      const response = await fetch('http://localhost:8080/api/productos', {
+      const token = localStorage.getItem('authToken')
+      const res = await fetch('http://localhost:8080/api/guias-ingreso', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
+          Authorization: `Bearer ${token}`
         },
         body: JSON.stringify(payload)
       })
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ message: 'Error en el servidor.' }));
-        throw new Error(errorData.message || `Error HTTP: ${response.status}`);
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: 'Error del servidor' }))
+        throw new Error(err.message || 'Error al registrar guía.')
       }
-
-      setMessage("Producto ingresado exitosamente")
-      setFormData(initialFormData) // Limpiar formulario
-
-    } catch (error: any) {
-      setMessage(`Error al ingresar el producto: ${error.message}`)
+      setMessage({ type: 'success', text: 'Guía de ingreso registrada correctamente.' })
+      setForm(initialForm)
+      setProductosEnGuia([])
+    } catch (err: any) {
+      setMessage({ type: 'error', text: err.message || 'Error de conexión' })
     } finally {
       setSaving(false)
     }
   }
 
   const handleReset = () => {
-    setFormData(initialFormData)
-    setMessage("")
+    setForm(initialForm)
+    setProductosEnGuia([])
+    setMessage(null)
+    setSearchTerm("")
   }
 
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>Verificando autenticación...</p>
-        </div>
+  if (loading) return <div className="min-h-screen flex items-center justify-center">Verificando...</div>
+  if (!isAuth) return (
+    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="text-center p-8 bg-white rounded-lg shadow-md">
+        <h1 className="text-2xl font-bold mb-4">Acceso Denegado</h1>
+        <p>Por favor inicia sesión.</p>
       </div>
-    )
-  }
-
-  if (!isAuth) {
-    return (
-        <div className="min-h-screen flex items-center justify-center bg-gray-50">
-            <div className="text-center p-8 bg-white rounded-lg shadow-md">
-                <h1 className="text-2xl font-bold mb-4">Acceso Denegado</h1>
-                <p>Por favor, inicia sesión para acceder a esta página.</p>
-            </div>
-        </div>
-    )
-  }
+    </div>
+  )
 
   return (
-
-  <DashboardLayout>
-    <div className="min-h-screen bg-gray-50">
-      <header className="border-b bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
-            <div className="flex items-center gap-4">
-          
-              <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-                <FileText className="w-6 h-6" />
-                Guía de Ingreso
-              </h1>
-            </div>
-
-            <Button onClick={handleLogout} variant="outline" size="sm">
-              <LogOut className="w-4 h-4 mr-2" />
-              Cerrar Sesión
-            </Button>
+    <DashboardLayout>
+      <div className="min-h-screen bg-gray-50">
+        <header className="border-b bg-white">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center h-16">
+            <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+              <FileText className="w-6 h-6" /> Guía de Ingreso
+            </h1>
+            <Button onClick={logout} variant="outline" size="sm"><LogOut className="w-4 h-4 mr-2"/> Cerrar Sesión</Button>
           </div>
-        </div>
-      </header>
+        </header>
 
-      <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Registrar Nuevo Producto</CardTitle>
-            <p className="text-gray-500">
-              Completa la información del producto que deseas ingresar al inventario
-            </p>
-          </CardHeader>
-          <CardContent>
+        <main className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle>Información de la Guía</CardTitle>
+              </CardHeader>
+              <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="fechaIngreso">Fecha de Ingreso</Label>
+                  <Input id="fechaIngreso" type="date" value={form.fechaIngreso} onChange={(e:any) => setForm(prev => ({...prev, fechaIngreso: e.target.value}))} required />
+                </div>
+                <div className="md:col-span-2">
+                  <Label htmlFor="notas">Notas</Label>
+                  <Textarea id="notas" value={form.notas} onChange={(e:any) => setForm(prev => ({...prev, notas: e.target.value}))} />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Productos en la Guía</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="relative">
+                  <Label htmlFor="buscarProducto">Buscar Producto</Label>
+                  <div className="flex items-center">
+                    <Search className="absolute left-3 text-gray-400 w-5 h-5" />
+                    <Input id="buscarProducto" placeholder="Escribe para buscar..." value={searchTerm} onChange={(e:any) => setSearchTerm(e.target.value)} className="pl-10" />
+                  </div>
+                  {isSearching && <p className="text-sm text-gray-500 mt-1">Buscando...</p>}
+                  {searchResults.length > 0 && (
+                    <ul className="absolute z-10 w-full bg-white border rounded-md mt-1 max-h-60 overflow-y-auto shadow-lg">
+                      {searchResults.map(p => (
+                        <li key={p.id} className="p-2 hover:bg-gray-100 cursor-pointer" onClick={() => addProducto(p)}>
+                          {p.nombre} (Stock: {p.stock})
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+
+                <div>
+                  {productosEnGuia.length === 0 ? (
+                    <p className="text-center text-gray-500 py-6">No hay productos agregados.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {productosEnGuia.map(p => (
+                        <div key={p.id} className="flex items-center gap-4 p-2 border rounded-md">
+                          <div className="flex-grow">
+                            <p className="font-medium">{p.nombre}</p>
+                            <p className="text-sm text-gray-500">Stock actual: {p.stock}</p>
+                          </div>
+
+                          <Input type="number" className="w-24" min={1} value={p.cantidad} onChange={(e:any) => cambiarCantidad(p.id, parseInt(e.target.value || "1", 10))} />
+                          <Button variant="outline" size="sm" onClick={() => removeProducto(p.id)}><Trash2 className="w-4 h-4 text-red-500" /></Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
             {message && (
-              <Alert
-                className={`mb-6 ${message.includes("Error") ? "border-red-200 bg-red-50" : "border-green-200 bg-green-50"}`}
-              >
-                <AlertDescription className={message.includes("Error") ? "text-red-800" : "text-green-800"}>
-                  {message}
-                </AlertDescription>
+              <Alert className={`mb-6 ${message.type === 'error' ? 'border-red-200 bg-red-50 text-red-800' : 'border-green-200 bg-green-50 text-green-800'}`}>
+                <AlertDescription>{message.text}</AlertDescription>
               </Alert>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="nombre">Nombre del Producto *</Label>
-                  <Input id="nombre" value={formData.nombre} onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange("nombre", e.target.value)} required />
-                </div>
-                <div>
-                  <Label htmlFor="categoria">Categoría *</Label>
-                  <Input id="categoria" value={formData.categoria} onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange("categoria", e.target.value)} required />
-                </div>
-                <div>
-                  <Label htmlFor="marca">Marca</Label>
-                  <Input id="marca" value={formData.marca} onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange("marca", e.target.value)} />
-                </div>
-                <div>
-                  <Label htmlFor="modelo">Modelo</Label>
-                  <Input id="modelo" value={formData.modelo} onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange("modelo", e.target.value)} />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="descripcion">Descripción</Label>
-                <Textarea id="descripcion" value={formData.descripcion} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange("descripcion", e.target.value)} rows={3} />
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="precio">Precio *</Label>
-                  <Input id="precio" type="number" step="0.01" value={formData.precio} onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange("precio", e.target.value)} required />
-                </div>
-                <div>
-                  <Label htmlFor="stock">Stock Inicial *</Label>
-                  <Input id="stock" type="number" value={formData.stock} onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange("stock", e.target.value)} required />
-                </div>
-                <div>
-                  <Label htmlFor="codigoBarras">Código de Barras</Label>
-                  <Input id="codigoBarras" value={formData.codigoBarras} onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange("codigoBarras", e.target.value)} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="fechaIngreso">Fecha de Ingreso</Label>
-                  <Input id="fechaIngreso" type="date" value={formData.fechaIngreso} onChange={(e: React.ChangeEvent<HTMLInputElement>) => handleInputChange("fechaIngreso", e.target.value)} />
-                </div>
-              </div>
-
-              <div>
-                <Label htmlFor="notas">Notas Adicionales</Label>
-                <Textarea id="notas" value={formData.notas} onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) => handleInputChange("notas", e.target.value)} rows={3} placeholder="Información adicional sobre el producto..." />
-              </div>
-
-              <div className="flex gap-4 pt-4">
-                <Button type="submit" disabled={saving}>
-                  {saving ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Guardando...
-                    </>
-                  ) : (
-                    <>
-                      <Save className="w-4 h-4 mr-2" />
-                      Guardar Producto
-                    </>
-                  )}
-                </Button>
-                <Button type="button" variant="outline" onClick={handleReset}>
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  Limpiar Formulario
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </main>
-    </div>
+            <div className="flex justify-end gap-4">
+              <Button type="button" variant="outline" onClick={handleReset}><RotateCcw className="w-4 h-4 mr-2"/> Limpiar</Button>
+              <Button type="submit" disabled={saving}>
+                {saving ? <>Guardando...</> : <><Save className="w-4 h-4 mr-2"/> Guardar Guía</>}
+              </Button>
+            </div>
+          </form>
+        </main>
+      </div>
     </DashboardLayout>
   )
 }
-
